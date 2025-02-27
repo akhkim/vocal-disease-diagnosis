@@ -3,6 +3,7 @@ import torch
 import torchaudio
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
@@ -14,7 +15,12 @@ categories = ['Normal', 'Vox_senilis', 'Laryngocele']
 # Function to extract Mel Spectrogram from an audio file
 def extract_features(file_path):
     waveform, sample_rate = torchaudio.load(file_path)
-    mel_spectrogram = torchaudio.transforms.MelSpectrogram(sample_rate=sample_rate)(waveform)
+    mel_spectrogram_transform = torchaudio.transforms.MelSpectrogram(
+        sample_rate=sample_rate,
+        n_fft=1024,
+        n_mels=64
+    )
+    mel_spectrogram = mel_spectrogram_transform(waveform)
     return mel_spectrogram
 
 class AudioDataset(Dataset):
@@ -45,27 +51,53 @@ for category in categories:
 # Split data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(file_paths, labels, test_size=0.2, random_state=42)
 
+def pad_collate(batch):
+    # Find the longest spectrogram in the batch (along the time dimension)
+    max_len = max([spec.shape[2] for spec, _ in batch])
+    
+    # Pad each spectrogram to match the maximum length
+    padded_specs = []
+    labels = []
+    for spec, label in batch:
+        pad_amount = max_len - spec.shape[2]
+        padded_spec = torch.nn.functional.pad(spec, (0, pad_amount, 0, 0, 0, 0), mode='constant', value=0)
+        padded_specs.append(padded_spec)
+        labels.append(label)
+    
+    # Stack the padded spectrograms and convert labels to a tensor
+    padded_specs = torch.stack(padded_specs)
+    labels = torch.tensor(labels)
+    return padded_specs, labels
+
 # Create datasets and dataloaders
 train_dataset = AudioDataset(X_train, y_train)
 test_dataset = AudioDataset(X_test, y_test)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=pad_collate)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, collate_fn=pad_collate)
 
 # Define the CNN model
 class AudioCNN(nn.Module):
     def __init__(self, num_classes):
         super(AudioCNN, self).__init__()
+
+        # Convolutional layers
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.fc1 = nn.Linear(64 * 32 * 32, 128)
+
+        # Adaptive pooling to reduce to a fixed size
+        self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(64, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        x = self.pool(nn.functional.relu(self.conv1(x)))
-        x = self.pool(nn.functional.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 32 * 32)  # Flatten
-        x = nn.functional.relu(self.fc1(x))
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.global_pool(x)
+        x = x.view(-1, 64)       # Flatten to [batch_size, 64]
+        x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
 
