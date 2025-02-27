@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 
 destination_folder = 'patient-vocal-dataset'
 
-categories = ['Normal', 'Vox_senilis', 'Laryngozele']
+categories = ['Normal', 'Vox_senilis', 'Laryngocele']
 
 # Function to extract Mel Spectrogram from an audio file
 def extract_features(file_path):

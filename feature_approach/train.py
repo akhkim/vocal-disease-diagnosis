@@ -8,7 +8,7 @@ import joblib
 
 destination_folder = 'health_detection/patient-vocal-dataset'
 
-categories = ['Normal', 'Vox_senilis', 'Laryngozele']
+categories = ['Normal', 'Vox_senilis', 'Laryngocele']
 
 def extract_features(file_path):
     """
