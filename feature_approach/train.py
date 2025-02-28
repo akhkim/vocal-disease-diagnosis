@@ -6,9 +6,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import joblib
 
-destination_folder = 'health_detection/patient-vocal-dataset'
+destination_folder = 'patient-vocal-dataset'
 
-categories = ['Normal', 'Vox_senilis', 'Laryngocele']
+categories = ['Normal', 'Vox_senilis', 'Laryngocele', 'Covid']
 
 def extract_features(file_path):
     """

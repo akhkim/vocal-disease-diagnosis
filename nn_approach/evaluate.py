@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # Define the categories
-categories = ['Normal', 'Vox_senilis', 'Laryngocele']
+categories = ['Normal', 'Vox_senilis', 'Laryngocele', 'Covid']
 
 # Function to extract Mel Spectrogram from an audio file
 def extract_features(file_path):

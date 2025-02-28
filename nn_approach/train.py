@@ -10,11 +10,13 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 
 destination_folder = 'patient-vocal-dataset'
 
-categories = ['Normal', 'Vox_senilis', 'Laryngocele']
+categories = ['Normal', 'Vox_senilis', 'Laryngocele', 'Covid']
 
 # Function to extract Mel Spectrogram from an audio file
 def extract_features(file_path):
     waveform, sample_rate = torchaudio.load(file_path)
+    if waveform.shape[0] > 1:
+        waveform = waveform.mean(dim=0, keepdim=True)
     mel_spectrogram_transform = torchaudio.transforms.MelSpectrogram(
         sample_rate=sample_rate,
         n_fft=1024,
@@ -101,44 +103,48 @@ class AudioCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-model = AudioCNN(num_classes=len(categories))
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+def train():
+    model = AudioCNN(num_classes=len(categories))
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Training loop
-num_epochs = 10
-for epoch in range(num_epochs):
-    model.train()
-    running_loss = 0.0
-    for inputs, labels in train_loader:
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
-    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader):.4f}')
+    # Training loop
+    num_epochs = 10
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader):.4f}')
 
-# Evaluate the model
-model.eval()
-y_pred = []
-y_true = []
-with torch.no_grad():
-    for inputs, labels in test_loader:
-        outputs = model(inputs)
-        _, predicted = torch.max(outputs, 1)
-        y_pred.extend(predicted.tolist())
-        y_true.extend(labels.tolist())
+    # Evaluate the model
+    model.eval()
+    y_pred = []
+    y_true = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            y_pred.extend(predicted.tolist())
+            y_true.extend(labels.tolist())
 
-# Print performance metrics
-accuracy = accuracy_score(y_true, y_pred)
-print(f'Accuracy: {accuracy:.2f}')
-print('\nConfusion Matrix:')
-print(confusion_matrix(y_true, y_pred))
-print('\nClassification Report:')
-print(classification_report(y_true, y_pred, target_names=categories))
+    # Print performance metrics
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f'Accuracy: {accuracy:.2f}')
+    print('\nConfusion Matrix:')
+    print(confusion_matrix(y_true, y_pred))
+    print('\nClassification Report:')
+    print(classification_report(y_true, y_pred, target_names=categories))
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-model_filename = os.path.join(script_dir, 'voice_classifier_model.pth')
-torch.save(model.state_dict(), model_filename)
-print(f'\nModel saved as {model_filename}')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    model_filename = os.path.join(script_dir, 'voice_classifier_model.pth')
+    torch.save(model.state_dict(), model_filename)
+    print(f'\nModel saved as {model_filename}')
+
+if __name__ == '__main__':
+    train()

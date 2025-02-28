@@ -5,7 +5,7 @@ import numpy as np
 import joblib
 from train import extract_features
 
-categories = ['Normal', 'Vox senilis', 'Laryngocele']
+categories = ['Normal', 'Vox senilis', 'Laryngocele', 'Covid']
 
 # Load the pre-trained model
 script_dir = os.path.dirname(os.path.abspath(__file__))
