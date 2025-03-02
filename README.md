@@ -3,6 +3,7 @@
 This program aims to diagnose the patient's speech audio and diagnose whether and classify the type of vocal disorder they are experiencing.
 
 The example script currently supports 4 types of disorders, which are Normal, Vox Senilis, Laryngocele, and COVID. 
+
 However, as the file used to train the models is included, additional disorders can be simply added by adding their name to the categories array in both train and evaluate files, and adding the dataset to train it on in patient-vocal-dataset folder, following the folder name formatting used in the repository.
 
 The models currently included in the repository supports regular speech as well as Electroglottography audio for all 4 types of disorders, allowing for more flexible and accurate analysis.
