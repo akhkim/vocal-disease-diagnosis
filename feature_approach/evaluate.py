@@ -1,7 +1,5 @@
 import sys
 import os
-import librosa
-import numpy as np
 import joblib
 from train import extract_features
 
